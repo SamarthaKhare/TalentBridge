@@ -118,16 +118,16 @@ npx prisma generate
 npx prisma migrate dev --name init
 npx prisma db seed
 npm run dev
-# Backend runs on http://localhost:5001 (port 5000 may be used by macOS AirPlay)
+# Backend runs on http://localhost:5000
 
 # Frontend setup (new terminal)
-cd frontend
+cd ../frontend
 npm install
 npm run dev
-# Frontend runs on http://localhost:3000 (proxies /api to backend automatically)
+# Frontend runs on http://localhost:3000 (proxies /api and /uploads to backend)
 ```
 
-> **Note:** On macOS, port 5000 is often used by AirPlay Receiver. Set `PORT=5001` in `backend/.env` and ensure `frontend/vite.config.ts` proxy target matches.
+> **Note (macOS):** Port 5000 may be used by AirPlay Receiver. If so, set `PORT=5001` in `backend/.env` and update the proxy target in `frontend/vite.config.ts` from `5000` to `5001`.
 
 ## Test Credentials (Seeded)
 
