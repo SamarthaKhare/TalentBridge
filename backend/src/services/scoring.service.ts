@@ -25,20 +25,33 @@ export function calculateMatchScore(
   const candidateSkillIds = new Set(candidateSkills.map((s) => s.skillId));
 
   // ── Skills: 70 pts ──
-  // Score = (number of required job skills the candidate has / total required job skills) * 70
-  // If no skills are marked required, use all job skills instead
+  // Required skills worth 50pts, optional skills worth 20pts (total 70)
   if (jobSkills.length > 0) {
     const requiredSkills = jobSkills.filter((s) => s.required);
-    const poolToMatch = requiredSkills.length > 0 ? requiredSkills : jobSkills;
+    const optionalSkills = jobSkills.filter((s) => !s.required);
 
-    let matched = 0;
-    for (const js of poolToMatch) {
-      if (candidateSkillIds.has(js.skillId)) {
-        matched++;
+    if (requiredSkills.length > 0) {
+      let matchedRequired = 0;
+      for (const js of requiredSkills) {
+        if (candidateSkillIds.has(js.skillId)) matchedRequired++;
       }
-    }
+      score += (matchedRequired / requiredSkills.length) * 50;
 
-    score += (matched / poolToMatch.length) * 70;
+      if (optionalSkills.length > 0) {
+        let matchedOptional = 0;
+        for (const js of optionalSkills) {
+          if (candidateSkillIds.has(js.skillId)) matchedOptional++;
+        }
+        score += (matchedOptional / optionalSkills.length) * 20;
+      }
+    } else {
+      // No required skills marked — all skills weighted equally at 70
+      let matched = 0;
+      for (const js of jobSkills) {
+        if (candidateSkillIds.has(js.skillId)) matched++;
+      }
+      score += (matched / jobSkills.length) * 70;
+    }
   }
 
   // ── Experience: 30 pts ──

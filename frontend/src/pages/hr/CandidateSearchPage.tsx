@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { searchAPI, outreachAPI } from '../../api/queries';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
@@ -29,6 +29,8 @@ export default function CandidateSearchPage() {
   // Profile modal
   const [profileCandidate, setProfileCandidate] = useState<any>(null);
   const [showResume, setShowResume] = useState(false);
+
+  useEffect(() => { search(); }, []);
 
   const search = async () => {
     setLoading(true);
