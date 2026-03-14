@@ -203,16 +203,14 @@ export const withdrawApplication = async (req: Request, res: Response) => {
       where: { id: req.params.id, candidateId: req.user!.userId },
     });
     if (!application) return res.status(404).json({ error: 'Application not found' });
-    if (application.status === 'WITHDRAWN') {
-      return res.status(400).json({ error: 'Already withdrawn' });
-    }
 
-    const updated = await prisma.application.update({
-      where: { id: req.params.id },
-      data: { status: 'WITHDRAWN' },
-    });
+    // Delete the application entirely so the candidate can re-apply
+    await prisma.applicationAnswer.deleteMany({ where: { applicationId: req.params.id } });
+    await prisma.applicationNote.deleteMany({ where: { applicationId: req.params.id } });
+    await prisma.outreachRecipient.deleteMany({ where: { applicationId: req.params.id } });
+    await prisma.application.delete({ where: { id: req.params.id } });
 
-    return res.json(updated);
+    return res.json({ message: 'Application withdrawn successfully' });
   } catch (error) {
     console.error('Withdraw error:', error);
     return res.status(500).json({ error: 'Internal server error' });
