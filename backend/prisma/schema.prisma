@@ -1,0 +1,298 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  HR
+  CANDIDATE
+}
+
+enum JobType {
+  REMOTE
+  ONSITE
+  HYBRID
+}
+
+enum JobStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  PAUSED
+}
+
+enum Proficiency {
+  BEGINNER
+  INTERMEDIATE
+  EXPERT
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  INTERVIEW
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+enum QuestionType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+}
+
+enum OutreachRecipientStatus {
+  SENT
+  FAILED
+  OPENED
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  role          Role
+  name          String
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  hrProfile        HrProfile?
+  candidateProfile CandidateProfile?
+  jobs             Job[]
+  applications     Application[]
+  outreachEmails   OutreachEmail[]
+  savedJobs        SavedJob[]
+  jobViews         JobView[]
+  outreachRecipients OutreachRecipient[]
+
+  @@map("users")
+}
+
+model HrProfile {
+  id          String  @id @default(uuid())
+  userId      String  @unique @map("user_id")
+  companyName String  @map("company_name")
+  companyLogo String? @map("company_logo")
+  designation String?
+  bio         String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("hr_profiles")
+}
+
+model CandidateProfile {
+  id                     String   @id @default(uuid())
+  userId                 String   @unique @map("user_id")
+  headline               String?
+  bio                    String?
+  location               String?
+  experienceYears        Int?     @map("experience_years")
+  noticePeriodDays       Int?     @map("notice_period_days")
+  currentCtc             Float?   @map("current_ctc")
+  expectedCtc            Float?   @map("expected_ctc")
+  graduationDate         DateTime? @map("graduation_date")
+  resumeUrl              String?  @map("resume_url")
+  profileCompletionScore Int      @default(0) @map("profile_completion_score")
+  linkedinUrl            String?  @map("linkedin_url")
+  githubUrl              String?  @map("github_url")
+  portfolioUrl           String?  @map("portfolio_url")
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidateSkills CandidateSkill[]
+
+  @@map("candidate_profiles")
+}
+
+model Skill {
+  id       String   @id @default(uuid())
+  name     String   @unique
+  category String?
+  aliases  String[] @default([])
+
+  candidateSkills CandidateSkill[]
+  jobSkills       JobSkill[]
+
+  @@map("skills")
+}
+
+model CandidateSkill {
+  id          String      @id @default(uuid())
+  candidateId String      @map("candidate_id")
+  skillId     String      @map("skill_id")
+  proficiency Proficiency @default(BEGINNER)
+  years       Int         @default(0)
+
+  candidate CandidateProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  skill     Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, skillId])
+  @@map("candidate_skills")
+}
+
+model Job {
+  id            String    @id @default(uuid())
+  hrId          String    @map("hr_id")
+  title         String
+  description   String
+  location      String?
+  jobType       JobType   @default(ONSITE) @map("job_type")
+  experienceMin Int?      @map("experience_min")
+  experienceMax Int?      @map("experience_max")
+  salaryMin     Float?    @map("salary_min")
+  salaryMax     Float?    @map("salary_max")
+  status        JobStatus @default(DRAFT)
+  deadline      DateTime?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  hr            User              @relation(fields: [hrId], references: [id], onDelete: Cascade)
+  jobSkills     JobSkill[]
+  questionnaire JobQuestionnaire?
+  applications  Application[]
+  jobViews      JobView[]
+  savedJobs     SavedJob[]
+
+  @@map("jobs")
+}
+
+model JobSkill {
+  id       String  @id @default(uuid())
+  jobId    String  @map("job_id")
+  skillId  String  @map("skill_id")
+  required Boolean @default(false)
+  weight   Int     @default(5)
+
+  job   Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, skillId])
+  @@map("job_skills")
+}
+
+model JobQuestionnaire {
+  id    String @id @default(uuid())
+  jobId String @unique @map("job_id")
+
+  job       Job                      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  questions QuestionnaireQuestion[]
+
+  @@map("job_questionnaires")
+}
+
+model QuestionnaireQuestion {
+  id              String       @id @default(uuid())
+  questionnaireId String       @map("questionnaire_id")
+  questionText    String       @map("question_text")
+  questionType    QuestionType @default(TEXT) @map("question_type")
+  options         String[]     @default([])
+  isRequired      Boolean      @default(false) @map("is_required")
+  order           Int          @default(0)
+
+  questionnaire      JobQuestionnaire    @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  applicationAnswers ApplicationAnswer[]
+
+  @@map("questionnaire_questions")
+}
+
+model Application {
+  id          String            @id @default(uuid())
+  jobId       String            @map("job_id")
+  candidateId String            @map("candidate_id")
+  status      ApplicationStatus @default(APPLIED)
+  matchScore  Int               @default(0) @map("match_score")
+  appliedAt   DateTime          @default(now()) @map("applied_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  job       Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidate User                @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  answers   ApplicationAnswer[]
+  notes     ApplicationNote[]
+  outreachRecipients OutreachRecipient[]
+
+  @@unique([jobId, candidateId])
+  @@map("applications")
+}
+
+model ApplicationAnswer {
+  id            String @id @default(uuid())
+  applicationId String @map("application_id")
+  questionId    String @map("question_id")
+  answerText    String @map("answer_text")
+
+  application Application           @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  question    QuestionnaireQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("application_answers")
+}
+
+model ApplicationNote {
+  id            String   @id @default(uuid())
+  applicationId String   @map("application_id")
+  content       String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("application_notes")
+}
+
+model OutreachEmail {
+  id             String   @id @default(uuid())
+  hrId           String   @map("hr_id")
+  subject        String
+  body           String
+  sentAt         DateTime @default(now()) @map("sent_at")
+  recipientCount Int      @default(0) @map("recipient_count")
+
+  hr         User                @relation(fields: [hrId], references: [id], onDelete: Cascade)
+  recipients OutreachRecipient[]
+
+  @@map("outreach_emails")
+}
+
+model OutreachRecipient {
+  id            String                   @id @default(uuid())
+  outreachId    String                   @map("outreach_id")
+  candidateId   String                   @map("candidate_id")
+  applicationId String?                  @map("application_id")
+  status        OutreachRecipientStatus  @default(SENT)
+
+  outreach    OutreachEmail @relation(fields: [outreachId], references: [id], onDelete: Cascade)
+  candidate   User          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  application Application?  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("outreach_recipients")
+}
+
+model JobView {
+  id          String   @id @default(uuid())
+  jobId       String   @map("job_id")
+  candidateId String   @map("candidate_id")
+  viewedAt    DateTime @default(now()) @map("viewed_at")
+
+  job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidate User @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("job_views")
+}
+
+model SavedJob {
+  id          String   @id @default(uuid())
+  candidateId String   @map("candidate_id")
+  jobId       String   @map("job_id")
+  savedAt     DateTime @default(now()) @map("saved_at")
+
+  candidate User @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobId])
+  @@map("saved_jobs")
+}
