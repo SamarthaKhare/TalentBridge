@@ -80,8 +80,8 @@ export function calculateMatchScore(
   }
 
   // Notice period fit (10 points)
-  if (candidateNoticePeriod !== null && requiredNoticePeriod !== null) {
-    if (candidateNoticePeriod <= requiredNoticePeriod) {
+  if (candidateNoticePeriod !== null && requiredNoticePeriod != null) {
+    if (candidateNoticePeriod <= requiredNoticePeriod!) {
       score += 10;
     }
   }

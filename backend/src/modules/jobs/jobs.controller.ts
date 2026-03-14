@@ -21,8 +21,7 @@ export const getJobs = async (req: Request, res: Response) => {
         include: {
           jobSkills: { include: { skill: true } },
           hr: {
-            include: { hrProfile: true },
-            select: { id: true, name: true, hrProfile: true } as any,
+            select: { id: true, name: true, hrProfile: true },
           },
           _count: { select: { applications: true } },
         },
