@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
-import { HiOutlineLocationMarker, HiOutlineCurrencyDollar, HiOutlineClock, HiOutlineBriefcase } from 'react-icons/hi';
+import { HiOutlineLocationMarker, HiOutlineClock, HiOutlineBriefcase } from 'react-icons/hi';
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -73,7 +73,7 @@ export default function JobDetailPage() {
               {job.location && <span className="flex items-center gap-1"><HiOutlineLocationMarker className="h-4 w-4" />{job.location}</span>}
               <span className="flex items-center gap-1"><HiOutlineBriefcase className="h-4 w-4" /><Badge status={job.jobType} /></span>
               {(job.salaryMin || job.salaryMax) && (
-                <span className="flex items-center gap-1"><HiOutlineCurrencyDollar className="h-4 w-4" />${job.salaryMin?.toLocaleString()} - ${job.salaryMax?.toLocaleString()}</span>
+                <span className="flex items-center gap-1">₹{job.salaryMin?.toLocaleString('en-IN')} - ₹{job.salaryMax?.toLocaleString('en-IN')}</span>
               )}
               {(job.experienceMin !== null || job.experienceMax !== null) && (
                 <span className="flex items-center gap-1"><HiOutlineClock className="h-4 w-4" />{job.experienceMin}-{job.experienceMax} years</span>

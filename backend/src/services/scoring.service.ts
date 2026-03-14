@@ -60,7 +60,7 @@ export function calculateMatchScore(
     }
   }
 
-  return Math.round(Math.min(100, Math.max(0, score)));
+  return Math.round(Math.min(90, Math.max(0, score)));
 }
 
 export function getMatchExplanation(

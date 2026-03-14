@@ -116,7 +116,7 @@ export default function JobPostPage() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} onKeyDown={(e) => { if (e.key === 'Enter' && step !== 4) e.preventDefault(); }}>
         {step === 1 && (
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
             <Input label="Job Title" {...register('title', { required: 'Required' })} error={errors.title?.message as string} />
@@ -162,7 +162,7 @@ export default function JobPostPage() {
         {step === 2 && (
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
             <div className="relative">
-              <Input placeholder="Search skills to add..." value={skillSearch} onChange={(e) => searchSkills(e.target.value)} />
+              <Input placeholder="Search skills to add... (press Enter to add)" value={skillSearch} onChange={(e) => searchSkills(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && skillResults.length > 0) { e.preventDefault(); setSelectedSkills([...selectedSkills, { skillId: skillResults[0].id, name: skillResults[0].name, required: false, weight: 5 }]); setSkillSearch(''); setSkillResults([]); } }} />
               {skillResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {skillResults.map((s: any) => (

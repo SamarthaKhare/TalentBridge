@@ -5,7 +5,7 @@ import Badge from '../../components/ui/Badge';
 import ScoreRing from '../../components/ui/ScoreRing';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { HiOutlineBookmark, HiBookmark, HiOutlineLocationMarker, HiOutlineCurrencyDollar } from 'react-icons/hi';
+import { HiOutlineBookmark, HiBookmark, HiOutlineLocationMarker } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/authStore';
 
@@ -118,8 +118,7 @@ export default function JobSearchPage() {
                     )}
                     {(job.salaryMin || job.salaryMax) && (
                       <span className="flex items-center gap-1">
-                        <HiOutlineCurrencyDollar className="h-4 w-4" />
-                        {job.salaryMin?.toLocaleString()}{job.salaryMax ? ` - ${job.salaryMax.toLocaleString()}` : '+'}
+                        ₹{job.salaryMin?.toLocaleString('en-IN')}{job.salaryMax ? ` - ₹${job.salaryMax.toLocaleString('en-IN')}` : '+'}
                       </span>
                     )}
                     <span>{new Date(job.createdAt).toLocaleDateString()}</span>
