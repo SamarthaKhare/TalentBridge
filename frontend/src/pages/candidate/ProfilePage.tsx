@@ -185,9 +185,10 @@ export default function ProfilePage() {
           <h2 className="font-semibold text-lg">Skills</h2>
           <div className="relative">
             <Input
-              placeholder="Search skills..."
+              placeholder="Search skills... (press Enter to add)"
               value={skillSearch}
               onChange={(e) => searchSkills(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (skillResults.length > 0) { addSkill(skillResults[0]); } } }}
             />
             {skillResults.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
