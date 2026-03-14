@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const [skillResults, setSkillResults] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [apiErrors, setApiErrors] = useState<string[]>([]);
 
   useEffect(() => {
     loadProfile();
@@ -82,6 +83,7 @@ export default function ProfilePage() {
 
   const onSubmit = async (data: ProfileForm) => {
     setSaving(true);
+    setApiErrors([]);
     try {
       await profileAPI.update({
         ...data,
@@ -89,6 +91,9 @@ export default function ProfilePage() {
         noticePeriodDays: Number(data.noticePeriodDays) || undefined,
         currentCtc: Number(data.currentCtc) || undefined,
         expectedCtc: Number(data.expectedCtc) || undefined,
+        linkedinUrl: data.linkedinUrl || undefined,
+        githubUrl: data.githubUrl || undefined,
+        portfolioUrl: data.portfolioUrl || undefined,
         skills: selectedSkills.map((s) => ({
           skillId: s.skillId,
           proficiency: s.proficiency,
@@ -98,7 +103,22 @@ export default function ProfilePage() {
       toast.success('Profile updated!');
       loadProfile();
     } catch (error: any) {
-      toast.error('Failed to update profile');
+      const errData = error.response?.data?.error;
+      if (Array.isArray(errData)) {
+        // Zod validation errors — show each one
+        const messages = errData.map((e: any) => {
+          const field = e.path?.join('.') || 'Field';
+          return `${field}: ${e.message}`;
+        });
+        setApiErrors(messages);
+        toast.error(`Validation failed: ${messages.length} error(s)`);
+      } else if (typeof errData === 'string') {
+        setApiErrors([errData]);
+        toast.error(errData);
+      } else {
+        setApiErrors(['Failed to update profile. Please check your inputs.']);
+        toast.error('Failed to update profile');
+      }
     } finally { setSaving(false); }
   };
 
@@ -129,6 +149,17 @@ export default function ProfilePage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {apiErrors.length > 0 && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-sm font-medium text-red-800 mb-1">Please fix the following errors:</p>
+            <ul className="list-disc list-inside space-y-1">
+              {apiErrors.map((err, i) => (
+                <li key={i} className="text-sm text-red-700">{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
           <h2 className="font-semibold text-lg">Basic Info</h2>
           <Input label="Headline" placeholder="e.g. Full Stack Developer" {...register('headline')} />
