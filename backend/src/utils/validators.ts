@@ -51,7 +51,7 @@ export const jobCreateSchema = z.object({
   experienceMax: z.number().int().min(0).optional(),
   salaryMin: z.number().min(0).optional(),
   salaryMax: z.number().min(0).optional(),
-  status: z.enum(['DRAFT', 'OPEN']).default('DRAFT'),
+  status: z.enum(['DRAFT', 'OPEN', 'CLOSED', 'PAUSED']).default('DRAFT'),
   deadline: z.string().optional(),
   skills: z
     .array(
