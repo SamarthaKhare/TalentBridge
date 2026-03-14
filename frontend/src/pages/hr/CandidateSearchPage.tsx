@@ -129,7 +129,7 @@ export default function CandidateSearchPage() {
                   <p className="text-xs text-gray-500">{c.headline}</p>
                 </div>
               </div>
-              <ScoreRing score={c.matchScore} size={40} />
+              {c.matchScore > 0 && <ScoreRing score={c.matchScore} size={40} />}
             </div>
             <div className="mt-3 text-xs text-gray-500 space-y-1">
               {c.location && <p>Location: {c.location}</p>}
