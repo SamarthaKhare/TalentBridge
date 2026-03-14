@@ -262,3 +262,29 @@ See `.env.example` for all variables. Key ones:
 | JWT_REFRESH_SECRET | Secret for refresh tokens | (change in production) |
 | SMTP_HOST/PORT/USER/PASS | SMTP config (Mailtrap for dev) | smtp.mailtrap.io |
 | PORT | Backend port | 5000 |
+
+### Email Configuration
+
+Email features (application confirmation, status change notifications, bulk outreach) require valid SMTP credentials. The default `.env.example` uses placeholder values that **will not send real emails**.
+
+**For development (sandbox — no real delivery):**
+Sign up at [Mailtrap](https://mailtrap.io), create an inbox, and copy the credentials:
+```env
+SMTP_HOST=sandbox.smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USER=<your_mailtrap_user>
+SMTP_PASS=<your_mailtrap_pass>
+EMAIL_FROM=noreply@talentbridge.com
+```
+
+**For real email delivery (Gmail):**
+Generate a [Gmail App Password](https://myaccount.google.com/apppasswords) and use:
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_gmail@gmail.com
+SMTP_PASS=<your_app_password>
+EMAIL_FROM=your_gmail@gmail.com
+```
+
+> Without valid SMTP credentials, the app works fully — emails will silently fail and log errors to the console, but all other functionality is unaffected.
