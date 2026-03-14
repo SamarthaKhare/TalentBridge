@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 import ScoreRing from '../../components/ui/ScoreRing';
 import Modal from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
-import { HiOutlineMail } from 'react-icons/hi';
+import { HiOutlineMail, HiOutlineDocumentText } from 'react-icons/hi';
 
 export default function CandidateSearchPage() {
   const [candidates, setCandidates] = useState<any[]>([]);
@@ -28,6 +28,7 @@ export default function CandidateSearchPage() {
 
   // Profile modal
   const [profileCandidate, setProfileCandidate] = useState<any>(null);
+  const [showResume, setShowResume] = useState(false);
 
   const search = async () => {
     setLoading(true);
@@ -160,7 +161,7 @@ export default function CandidateSearchPage() {
       </Modal>
 
       {/* Profile Modal */}
-      <Modal isOpen={!!profileCandidate} onClose={() => setProfileCandidate(null)} title="Candidate Profile" size="lg">
+      <Modal isOpen={!!profileCandidate && !showResume} onClose={() => setProfileCandidate(null)} title="Candidate Profile" size="lg">
         {profileCandidate && (
           <div className="space-y-3">
             <p><strong>Name:</strong> {profileCandidate.user.name}</p>
@@ -179,7 +180,34 @@ export default function CandidateSearchPage() {
                 ))}
               </div>
             </div>
+            {profileCandidate.resumeUrl && (
+              <div className="pt-3 border-t border-gray-100">
+                <Button size="sm" variant="secondary" onClick={() => setShowResume(true)}>
+                  <HiOutlineDocumentText className="h-4 w-4 mr-1" />View Resume
+                </Button>
+              </div>
+            )}
           </div>
+        )}
+      </Modal>
+
+      {/* Resume PDF Modal */}
+      <Modal isOpen={!!profileCandidate && showResume} onClose={() => { setShowResume(false); setProfileCandidate(null); }} title={`Resume - ${profileCandidate?.user?.name || ''}`} size="xl">
+        {profileCandidate?.resumeUrl && (
+          <div className="flex flex-col h-[75vh]">
+            <iframe
+              src={profileCandidate.resumeUrl}
+              className="w-full flex-1 rounded-lg border border-gray-200"
+              title="Resume PDF"
+            />
+            <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+              <Button variant="secondary" size="sm" onClick={() => setShowResume(false)}>Back to Profile</Button>
+              <a href={profileCandidate.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline">Open in new tab</a>
+            </div>
+          </div>
+        )}
+        {profileCandidate && !profileCandidate.resumeUrl && (
+          <p className="text-sm text-gray-500 py-8 text-center">No resume uploaded.</p>
         )}
       </Modal>
     </div>

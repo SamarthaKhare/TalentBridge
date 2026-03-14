@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { HiOutlineDocumentText } from 'react-icons/hi';
 
 const STAGES = ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'OFFER', 'REJECTED'] as const;
 const STAGE_COLORS: Record<string, string> = {
@@ -23,7 +24,7 @@ export default function PipelinePage() {
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState<any>(null);
   const [noteText, setNoteText] = useState('');
-  const [showProfile, setShowProfile] = useState(false);
+  const [modalView, setModalView] = useState<'profile' | 'notes' | 'resume'>('profile');
 
   useEffect(() => { load(); }, [id]);
 
@@ -45,7 +46,6 @@ export default function PipelinePage() {
     const app = applications.find((a) => a.id === draggableId);
     if (!app || app.status === newStatus) return;
 
-    // Optimistic update
     setApplications(applications.map((a) => a.id === draggableId ? { ...a, status: newStatus } : a));
 
     try {
@@ -68,6 +68,10 @@ export default function PipelinePage() {
   };
 
   const getAppsByStage = (stage: string) => applications.filter((a) => a.status === stage);
+
+  const getResumeUrl = (app: any): string | null => {
+    return app?.candidate?.candidateProfile?.resumeUrl || null;
+  };
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" /></div>;
 
@@ -101,17 +105,25 @@ export default function PipelinePage() {
                             className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 cursor-move"
                           >
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium">{app.candidate?.name}</span>
+                              <span className="text-sm font-medium truncate mr-2">{app.candidate?.name}</span>
                               <ScoreRing score={app.matchScore} size={32} />
                             </div>
-                            <p className="text-xs text-gray-500">{app.candidate?.email}</p>
+                            <p className="text-xs text-gray-500 truncate">{app.candidate?.email}</p>
                             {app.candidate?.candidateProfile && (
-                              <p className="text-xs text-gray-400 mt-1">{app.candidate.candidateProfile.headline}</p>
+                              <p className="text-xs text-gray-400 mt-1 truncate">{app.candidate.candidateProfile.headline}</p>
                             )}
-                            <div className="flex gap-1 mt-2">
-                              <button onClick={() => { setSelectedApp(app); setShowProfile(true); }} className="text-xs text-primary-600 hover:underline">Profile</button>
+                            <div className="flex gap-1.5 mt-2 flex-wrap">
+                              <button onClick={() => { setSelectedApp(app); setModalView('profile'); }} className="text-xs text-primary-600 hover:underline">Profile</button>
                               <span className="text-gray-300">|</span>
-                              <button onClick={() => { setSelectedApp(app); setShowProfile(false); }} className="text-xs text-primary-600 hover:underline">Notes ({app.notes?.length || 0})</button>
+                              <button onClick={() => { setSelectedApp(app); setModalView('notes'); }} className="text-xs text-primary-600 hover:underline">Notes ({app.notes?.length || 0})</button>
+                              {getResumeUrl(app) && (
+                                <>
+                                  <span className="text-gray-300">|</span>
+                                  <button onClick={() => { setSelectedApp(app); setModalView('resume'); }} className="text-xs text-primary-600 hover:underline flex items-center gap-0.5">
+                                    <HiOutlineDocumentText className="h-3 w-3" />Resume
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                         )}
@@ -126,9 +138,14 @@ export default function PipelinePage() {
         </div>
       </DragDropContext>
 
-      {/* Profile/Notes Modal */}
-      <Modal isOpen={!!selectedApp} onClose={() => setSelectedApp(null)} title={showProfile ? 'Candidate Profile' : 'Notes'} size="lg">
-        {selectedApp && showProfile && (
+      {/* Profile Modal */}
+      <Modal
+        isOpen={!!selectedApp && modalView === 'profile'}
+        onClose={() => setSelectedApp(null)}
+        title="Candidate Profile"
+        size="lg"
+      >
+        {selectedApp && (
           <div className="space-y-3">
             <p><strong>Name:</strong> {selectedApp.candidate?.name}</p>
             <p><strong>Email:</strong> {selectedApp.candidate?.email}</p>
@@ -138,6 +155,7 @@ export default function PipelinePage() {
                 <p><strong>Location:</strong> {selectedApp.candidate.candidateProfile.location}</p>
                 <p><strong>Experience:</strong> {selectedApp.candidate.candidateProfile.experienceYears} years</p>
                 <p><strong>Notice Period:</strong> {selectedApp.candidate.candidateProfile.noticePeriodDays} days</p>
+                <p><strong>Expected CTC:</strong> {selectedApp.candidate.candidateProfile.expectedCtc?.toLocaleString()}</p>
                 <div>
                   <strong>Skills:</strong>
                   <div className="flex flex-wrap gap-1 mt-1">
@@ -148,10 +166,34 @@ export default function PipelinePage() {
                 </div>
               </>
             )}
+            {getResumeUrl(selectedApp) && (
+              <div className="pt-3 border-t border-gray-100">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setModalView('resume')}
+                >
+                  <HiOutlineDocumentText className="h-4 w-4 mr-1" />
+                  View Resume
+                </Button>
+              </div>
+            )}
           </div>
         )}
-        {selectedApp && !showProfile && (
+      </Modal>
+
+      {/* Notes Modal */}
+      <Modal
+        isOpen={!!selectedApp && modalView === 'notes'}
+        onClose={() => setSelectedApp(null)}
+        title={`Notes - ${selectedApp?.candidate?.name || ''}`}
+        size="lg"
+      >
+        {selectedApp && (
           <div className="space-y-3">
+            {selectedApp.notes?.length === 0 && (
+              <p className="text-sm text-gray-400">No notes yet.</p>
+            )}
             {selectedApp.notes?.map((n: any) => (
               <div key={n.id} className="p-2 bg-gray-50 rounded text-sm">
                 <p>{n.content}</p>
@@ -163,6 +205,44 @@ export default function PipelinePage() {
               <Button onClick={addNote} size="sm">Add</Button>
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* Resume PDF Modal */}
+      <Modal
+        isOpen={!!selectedApp && modalView === 'resume'}
+        onClose={() => setSelectedApp(null)}
+        title={`Resume - ${selectedApp?.candidate?.name || ''}`}
+        size="xl"
+      >
+        {selectedApp && getResumeUrl(selectedApp) && (
+          <div className="flex flex-col h-[75vh]">
+            <iframe
+              src={getResumeUrl(selectedApp)!}
+              className="w-full flex-1 rounded-lg border border-gray-200"
+              title="Resume PDF"
+            />
+            <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setModalView('profile')}
+              >
+                Back to Profile
+              </Button>
+              <a
+                href={getResumeUrl(selectedApp)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary-600 hover:underline"
+              >
+                Open in new tab
+              </a>
+            </div>
+          </div>
+        )}
+        {selectedApp && !getResumeUrl(selectedApp) && (
+          <p className="text-sm text-gray-500 py-8 text-center">This candidate has not uploaded a resume.</p>
         )}
       </Modal>
     </div>

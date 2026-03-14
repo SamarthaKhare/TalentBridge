@@ -11,8 +11,8 @@ interface CandidateSkillInfo {
 }
 
 const PROFICIENCY_MULTIPLIER: Record<string, number> = {
-  BEGINNER: 0.5,
-  INTERMEDIATE: 0.75,
+  BEGINNER: 0.4,
+  INTERMEDIATE: 0.7,
   EXPERT: 1.0,
 };
 
@@ -27,25 +27,22 @@ export function calculateMatchScore(
   candidateNoticePeriod: number | null,
   requiredNoticePeriod?: number | null
 ): number {
-  // Determine which scoring dimensions are active
   const hasSkills = jobSkills.length > 0;
   const hasExperience = candidateExperience !== null && (jobExperienceMin !== null || jobExperienceMax !== null);
   const hasLocation = !!(candidateLocation && jobLocation);
   const hasNoticePeriod = candidateNoticePeriod !== null && requiredNoticePeriod != null;
 
-  // PRD weights: skills=60, experience=20, location=10, notice=10
-  // If a dimension is not applicable, redistribute its points proportionally
-  let skillWeight = hasSkills ? 60 : 0;
+  // Heavily favour skills and experience
+  // Skills: 70pts, Experience: 20pts, Location: 5pts, Notice: 5pts
+  let skillWeight = hasSkills ? 70 : 0;
   let expWeight = hasExperience ? 20 : 0;
-  let locWeight = hasLocation ? 10 : 0;
-  let noticeWeight = hasNoticePeriod ? 10 : 0;
+  let locWeight = hasLocation ? 5 : 0;
+  let noticeWeight = hasNoticePeriod ? 5 : 0;
 
   const totalActive = skillWeight + expWeight + locWeight + noticeWeight;
-
-  // If nothing to score on, return 0
   if (totalActive === 0) return 0;
 
-  // Normalize weights to sum to 100
+  // Normalize to 100
   const scale = 100 / totalActive;
   skillWeight *= scale;
   expWeight *= scale;
@@ -54,46 +51,70 @@ export function calculateMatchScore(
 
   let score = 0;
 
-  // Skill match
+  // ── Skills (dominant factor) ──
   if (hasSkills) {
     const candidateSkillMap = new Map(
       candidateSkills.map((s) => [s.skillId, s])
     );
     let earnedSkillScore = 0;
     let maxSkillScore = 0;
+    let missingRequired = 0;
 
     for (const js of jobSkills) {
-      maxSkillScore += js.weight * 1.0; // max proficiency multiplier
+      maxSkillScore += js.weight * 1.0;
       const cs = candidateSkillMap.get(js.skillId);
       if (cs) {
-        earnedSkillScore += js.weight * PROFICIENCY_MULTIPLIER[cs.proficiency];
+        // Proficiency multiplier + bonus for years of experience in that skill
+        const yearsBonus = Math.min(cs.years / 10, 0.15); // up to 15% bonus
+        const multiplier = Math.min(1.0, PROFICIENCY_MULTIPLIER[cs.proficiency] + yearsBonus);
+        earnedSkillScore += js.weight * multiplier;
+      } else if (js.required) {
+        missingRequired++;
       }
     }
 
     if (maxSkillScore > 0) {
-      score += (earnedSkillScore / maxSkillScore) * skillWeight;
+      let skillScore = (earnedSkillScore / maxSkillScore) * skillWeight;
+      // Penalise heavily for each missing required skill (up to 40% penalty)
+      const requiredCount = jobSkills.filter((s) => s.required).length;
+      if (requiredCount > 0 && missingRequired > 0) {
+        const penaltyRate = Math.min(0.4, (missingRequired / requiredCount) * 0.5);
+        skillScore *= (1 - penaltyRate);
+      }
+      score += skillScore;
     }
   }
 
-  // Experience match
+  // ── Experience (second most important) ──
   if (hasExperience) {
     const min = jobExperienceMin ?? 0;
     const max = jobExperienceMax ?? 100;
-    if (candidateExperience! >= min && candidateExperience! <= max) {
+    const exp = candidateExperience!;
+
+    if (exp >= min && exp <= max) {
+      // Perfect fit — full points
       score += expWeight;
-    } else if (candidateExperience! >= min - 2 && candidateExperience! <= max + 2) {
-      score += expWeight * 0.5;
+    } else if (exp > max) {
+      // Overqualified — still good but slight reduction
+      const overBy = exp - max;
+      score += expWeight * Math.max(0.5, 1 - overBy * 0.05);
+    } else if (exp >= min - 1) {
+      // Slightly under — 70%
+      score += expWeight * 0.7;
+    } else if (exp >= min - 2) {
+      // Under by 2 years — 40%
+      score += expWeight * 0.4;
     }
+    // else: too far off, 0 points
   }
 
-  // Location match
+  // ── Location (minor) ──
   if (hasLocation) {
     const cLoc = candidateLocation!.toLowerCase().trim();
     const jLoc = jobLocation!.toLowerCase().trim();
     if (cLoc === jLoc) {
       score += locWeight;
     } else {
-      // Check if same country (last segment after comma)
       const cCountry = cLoc.split(',').pop()?.trim();
       const jCountry = jLoc.split(',').pop()?.trim();
       if (cCountry && jCountry && cCountry === jCountry) {
@@ -102,10 +123,16 @@ export function calculateMatchScore(
     }
   }
 
-  // Notice period fit
+  // ── Notice period (minor) ──
   if (hasNoticePeriod) {
     if (candidateNoticePeriod! <= requiredNoticePeriod!) {
       score += noticeWeight;
+    } else {
+      // Partially within — some credit if within 30 days over
+      const overBy = candidateNoticePeriod! - requiredNoticePeriod!;
+      if (overBy <= 30) {
+        score += noticeWeight * 0.5;
+      }
     }
   }
 
